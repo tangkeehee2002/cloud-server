@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <title>Upload</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="../../css/bulma/css/bulma.css">
+    <!-- <link rel="stylesheet" href="../../css/pure/css/pure.css"> -->
+    <script defer src="../../fontawesome/svg-with-js/js/fontawesome-all.js"></script>
+</head>
+
+<body>
+    <br><br>
+    <div class="field">
+      <div class="file is-centered is-boxed is-success has-name">
+        <label class="file-label">
+          <input class="file-input" id="file" type="file" name="resume">
+          <span class="file-cta">
+            <span class="file-icon">
+              <i class="fas fa-upload"></i>
+            </span>
+            <span class="file-label">
+              Upload file…
+            </span>
+          </span>
+          <span class="file-name" id="filename">
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div>
+        <p class="level-item has-text-centered">
+          <img src="../../pics/cs1.jpg" alt="" style="height: 500px;">
+        </p>
+    </div>
+
+<script>
+var file = document.getElementById("file");
+    file.onchange = function() {
+    if(file.files.length > 0) {
+    document.getElementById('filename').innerHTML = file.files[0].name;
+    }
+};
+</script>
+
+</body>
