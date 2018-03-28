@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <title>Sign up</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" href="../../css/bulma/css/bulma.css"> -->
+    <link rel="stylesheet" href="css/pure/css/pure.css">
+    <link rel="stylesheet" href="css/fontawesome/svg-with-js/css/fa-svg-with-js.css">
+    <script defer src="css/fontawesome/svg-with-js/js/fontawesome-all.js"></script>
+</head>
+
+<body>
+    <form id="login-form" method="post" action="login/index.html"  class="pure-form pure-form-aligned">
+        <input name="op" value="signup" type="hidden">
+        <fieldset>
+            <div class="pure-control-group">
+                <label for="fname">First Name</label>
+                <input id="fname" name="fname" type="text" placeholder="firstname">
+            </div><br>
+
+            <div class="pure-control-group">
+                <label for="lname">Last Name</label>
+                <input id="lname" name="lname" type="text" placeholder="lastname">
+            </div><br>
+
+            <div class="pure-control-group">
+                <label for="email">Email ID</label>
+                <input id="email" name="email" type="email" placeholder="email address">
+            </div><br>
+
+            <div class="pure-control-group">
+                <label for="name">Username</label>
+                <input id="name" name="username" type="text" placeholder="Username">
+                <span class="pure-form-message-inline">This is a required field.</span>
+            </div><br>
+
+            <div class="pure-control-group">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" placeholder="Password">
+            </div><br>
+
+            <button type="submit" class="pure-button pure-button-primary">Submit</button>
+            <p><b>Entered wrong details .. Try again</b> </p>
+            </div>
+        </fieldset>
+    </form>
+
+    <div>
+        <p class="level-item has-text-centered">
+          <img src="../pics/cs3.jpg" alt="" style="height: 450px;">
+        </p>
+    </div>
+</body>
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>
+        <strong>Cloud storage</strong> by <a href="https://github.com/R3DDY97">Venky</a>. The source code is licensed
+        <a href="http://opensource.org/licenses/mit-license.php">MIT</a>. The website content
+        is licensed <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY NC SA 4.0</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+</html>
