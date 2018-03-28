@@ -22,51 +22,44 @@ def handle_post_methods(body, op_type, function):
 
 
 
-def res_status(response, status):
-    status_dict = HTTPStatus.__dict__['_value2member_map_']
-    status = status_dict.get(status, False)
-    if status:
-        response_phrase = status.name.replace("_", " ").title()
-        response["status"] = "{0} {1}".format(status.value, response_phrase)
-    else:
-        raise ValueError("Invalid status code")
+# def body_handler(request, response, next_):    # server.res_status(response, 302)
+#     # header = {"Content-Type: "text/html"}
+#     # server.res_header(request, response, header)
+#     content_type = request["header"].get("Content-Type", False)
+#     if content_type:
+#         request["body"] = json.loads(request["body"].decode())
+#         # print(f'\n\n\n\n{request["body"]}\n\n\n')
+#     return next_(request, response, next_)
 
 
-def make_response(response):
-    res = response["protocol_version"] + EMPTYSTRING + response["status"] + CRLF
-    if response["header"]:
-        for key, value in response["header"].items():
-            res += "{0}: {1}{2}".format(key, value, CRLF)
-    res += CRLF
-    res_bytes = res.encode()
-    if "content" in response:
-        res_bytes += response["content"]
-    return res_bytes
+def request_handler(request):
+    response = {"protocol_version" : "HTTP/1.1", "header": {}}
+    # response = "\nHTTP/1.1 200 OK\n\nHello, World!\n"
+    next_ = create_next()
+    return next_(request, response, next_)
 
+def create_next():
+    counter = 0
+    def next_func(request, response, next_):
+        nonlocal counter
+        func = HANDLERS[counter]
+        counter += 1
+        return func(request, response, next_)
+    return next_func
 
-def response_handler(request, response):
-    response["header"]["Date"] = formatdate(usegmt=True)
-    response["header"]["Connection"] = "close"
-    if "content" not in response:
-        response["header"]["Content-Length"] = str(0)
-    res = make_response(response)
-    return res
-
-
-def ok_200_handler(request, response):
-    if "status" not in response:
-        response["status"] = "200 OK"
-    if "content" in response:
-        response["header"]["Content-Length"] = str(len(response["content"]))
-    response = response_handler(request, response)
-    return response
-
-
-def err_404_handler(request, response, next_):
-    if "status" not in response:
-        response["status"] = "404 Not Found"
-    response = response_handler(request, response)
-    return response
+def static_file_handler(request, response, next_):
+    if request["method"] == "GET" or (request["method"] == "POST" and request["path"]):
+        if request["path"][-1] == "/":
+            request["path"] += "index.html"
+        filename = "static{}".format(request["path"])
+        if not os.path.isfile(filename):
+            return next_(request, response, next_)
+        response["Content-Type"] = mimetypes.guess_type(request["path"])[0]
+        with open(filename, "rb") as file_obj:
+            res_body = file_obj.read()
+        response["content"] = res_body
+        return ok_200_handler(request, response)
+    return next_(request, response, next_)
 
 
 def route_handler(request, response, next_):    # server.res_status(response, 302)
@@ -87,45 +80,52 @@ def route_handler(request, response, next_):    # server.res_status(response, 30
     return ok_200_handler(request, response)
 
 
-def static_file_handler(request, response, next_):
-    if request["method"] == "GET" or (request["method"] == "POST" and request["path"]):
-        if request["path"][-1] == "/":
-            request["path"] += "index.html"
-        filename = "static{}".format(request["path"])
-        if not os.path.isfile(filename):
-            return next_(request, response, next_)
-        response["Content-Type"] = mimetypes.guess_type(request["path"])[0]
-        with open(filename, "rb") as file_obj:
-            res_body = file_obj.read()
-        response["content"] = res_body
-        return ok_200_handler(request, response)
-    return next_(request, response, next_)
+def ok_200_handler(request, response):
+    if "status" not in response:
+        response["status"] = "200 OK"
+    if "content" in response:
+        response["header"]["Content-Length"] = str(len(response["content"]))
+    response = response_handler(request, response)
+    return response
 
 
-# def body_handler(request, response, next_):    # server.res_status(response, 302)
-#     # header = {"Content-Type: "text/html"}
-#     # server.res_header(request, response, header)
-#     content_type = request["header"].get("Content-Type", False)
-#     if content_type:
-#         request["body"] = json.loads(request["body"].decode())
-#         # print(f'\n\n\n\n{request["body"]}\n\n\n')
-#     return next_(request, response, next_)
+def err_404_handler(request, response, next_):
+    if "status" not in response:
+        response["status"] = "404 Not Found"
+    response = response_handler(request, response)
+    return response
 
 
-def create_next():
-    counter = 0
-    def next_func(request, response, next_):
-        nonlocal counter
-        func = HANDLERS[counter]
-        counter += 1
-        return func(request, response, next_)
-    return next_func
+def response_handler(request, response):
+    response["header"]["Date"] = formatdate(usegmt=True)
+    response["header"]["Connection"] = "close"
+    if "content" not in response:
+        response["header"]["Content-Length"] = str(0)
+    res = make_response(response)
+    return res
 
-def request_handler(request):
-    response = {"protocol_version" : "HTTP/1.1", "header": {}}
-    # response = "\nHTTP/1.1 200 OK\n\nHello, World!\n"
-    next_ = create_next()
-    return next_(request, response, next_)
+
+def make_response(response):
+    res = response["protocol_version"] + EMPTYSTRING + response["status"] + CRLF
+    if response["header"]:
+        for key, value in response["header"].items():
+            res += "{0}: {1}{2}".format(key, value, CRLF)
+    res += CRLF
+    res_bytes = res.encode()
+    if "content" in response:
+        res_bytes += response["content"]
+    return res_bytes
+
+def res_status(response, status):
+    status_dict = HTTPStatus.__dict__['_value2member_map_']
+    status = status_dict.get(status, False)
+    if status:
+        response_phrase = status.name.replace("_", " ").title()
+        response["status"] = "{0} {1}".format(status.value, response_phrase)
+    else:
+        raise ValueError("Invalid status code")
+
+
 
 def get_query_content(request):
     path, query_params = request["path"].split("?")
@@ -201,12 +201,6 @@ async def handle_message(reader, writer):
         content_type = request["header"]["Content-Type"]
         body_stream = await reader.readexactly(int(con_len))
         request["body"] = body_parser(body_stream, content_type)
-        # parsed_request_body = body_parser(body_stream, content_type)
-        # request["body"] = parsed_request_body
-        # print(request["body"])
-        # return parsed_request_body
-    # if request.get("body", False) and rparsed_request_body.get("op", False):
-    #     cloud_database.save_signup(parsed_request_body)
     response = request_handler(request)
     writer.write(response)
     await writer.drain()
