@@ -4,19 +4,22 @@
 import os
 import re
 import json
+# import base64
 import asyncio
 import mimetypes
+# import binascii
 from http import HTTPStatus
-from email.utils import formatdate
-import cloud_database
+from email.utils import (formatdate, CRLF, EMPTYSTRING)
 # import logging
 
 METHODS = ("GET", "POST", "HEAD", "OPTIONS")
 ROUTES = {method: {} for method in METHODS}
+ALLOWED_DOMAINS = ("localhost:8000/index.html", )
 
 
 def handle_post_methods(body, op_type, function):
     pass
+
 
 
 def res_status(response, status):
@@ -30,11 +33,11 @@ def res_status(response, status):
 
 
 def make_response(response):
-    res = response["protocol_version"] + " " + response["status"] + "\r\n"
+    res = response["protocol_version"] + EMPTYSTRING + response["status"] + CRLF
     if response["header"]:
         for key, value in response["header"].items():
-            res += "{0}: {1}\r\n".format(key, value)
-    res += "\r\n"
+            res += "{0}: {1}{2}".format(key, value, CRLF)
+    res += CRLF
     res_bytes = res.encode()
     if "content" in response:
         res_bytes += response["content"]
@@ -145,46 +148,42 @@ def header_parser(header_stream):
 
 def body_parser(body_stream, content_type):
     if content_type == "application/json":
-        parsed_request_body = json.loads(body_stream)
+        parsed_request_body = json.loads(body_stream.decode())
     elif content_type == "application/x-www-form-urlencoded":
-        parsed_request_body = query_parser(body_stream)
+        parsed_request_body = query_parser(body_stream.decode())
     elif "multipart/form-data" in content_type:
         parsed_request_body = form_parser(body_stream, content_type)
+    print(parsed_request_body)
     return parsed_request_body
 
-def hdr2dict(subhdr):
-    subhdr = [i.strip() for i in subhdr.splitlines()]
-    subhdr_dict = {}
-    for item in subhdr:
-        if ":" in item:
-            item_dict = dict([item.split(":")])
-        elif ";" in item:
-            item_dict = dict([i.split("=") for i in item.split(";")])
-        elif "=" in item and ";" not in item:
-            item_dict = dict([item.split("=")])
-        else:
-            continue
-        subhdr_dict.update(item_dict)
-    # if subhdr_dict:
+def subhdr2dict(subhdr):
+    subhdr = subhdr.decode().strip().replace('"', '')
+    subhdr_lines = subhdr.split("Content-Disposition: form-data; ")[-1].split(CRLF)
+    subhdr_dict = dict([i.split("=") for i in subhdr_lines[0].split("; ")])
+    subhdr_dict.update(dict([subhdr_lines[1].split(":")]))
     return subhdr_dict
-
-
 
 def form_parser(body_stream, content_type):
     boundary_value = content_type.split(";")[-1].split("=")[-1]
-    # boundary = "--{}".format(boundary_value).encode()
-    boundary = "--{}".format(boundary_value)
+    boundary = "--{}".format(boundary_value).encode()
+    # binary_body_stream = binascii.a2b_base64(body_stream)
+    # decoded_body_stream = base64.encodebytes(body_stream)
+    # print(binary_body_stream)
+    # print(body_stream)
+    # multiform_data = binary_body_stream.split(boundary)
     multiform_data = body_stream.split(boundary)[1:-1]
-    sub_hdrs = [form[0].split("form-data; ")[-1] for form in multiform_data]
-    sub_body = [form[1].strip() for form in multiform_data]
+    # print(multiform_data)
+    # print(len(multiform_data))
+    data_list = [form.split((CRLF*2).encode()) for form in multiform_data] # list of (hdr, body)
+    form_hdrs = [subhdr2dict(part[0]) for part in data_list]
+    # form_body = [part[1] for part in data_list]
     form_dict = {}
-    for index, subhdr in enumerate(sub_hdrs):
-        name = hdr2dict(subhdr)["name"]
-        subhdr_dict = dict([("header", hdr2dict(subhdr)), (name, sub_body[index])])
-        form_dict.update(subhdr_dict)
-    # request["form"] = form_dict
+    for index, hdr in enumerate(form_hdrs):
+        form_dict[hdr.pop("filename")] = {"header": hdr, "body": data_list[index][1]}
+    print(form_hdrs)
+    # print(form_dict)
     return form_dict
-    # return request
+
 
 def query_parser(query_string):
     query_str = query_string.split("&")
@@ -201,10 +200,10 @@ async def handle_message(reader, writer):
         con_len = request["header"]["Content-Length"]
         content_type = request["header"]["Content-Type"]
         body_stream = await reader.readexactly(int(con_len))
-        print(body_stream)
-        parsed_request_body = body_parser(body_stream.decode(), content_type)
-        request["body"] = parsed_request_body
-        print(request["body"])
+        request["body"] = body_parser(body_stream, content_type)
+        # parsed_request_body = body_parser(body_stream, content_type)
+        # request["body"] = parsed_request_body
+        # print(request["body"])
         # return parsed_request_body
     # if request.get("body", False) and rparsed_request_body.get("op", False):
     #     cloud_database.save_signup(parsed_request_body)
@@ -215,7 +214,6 @@ async def handle_message(reader, writer):
 
 
 def execute_server(host='0.0.0.0', port=8000):
-    print("entered execute_server")
     loop = asyncio.get_event_loop()
     coro = asyncio.start_server(handle_message, host, port, loop=loop)
     server = loop.run_until_complete(coro)
