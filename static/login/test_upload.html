@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <title>Upload</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="../css/bulma/css/bulma.css">
+    <link rel="stylesheet" href="../css/pure/pure.css">
+    <script defer src="../css/fontawesome/svg-with-js/js/fontawesome-all.js"></script>
+</head>
+
+<body>
+
+        <nav class="level">
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href="index.html">Home</a>
+      </p>
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href="files.html" target="_blank">Files</a>
+      </p>
+      <p class="level-item has-text-centered">
+        <img src="../pics/cloud.jpg" alt="" style="height: 100px;">
+      </p>
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href="test_upload.html">Upload</a>
+      </p>
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href=../index.html>Logout</a>
+      </p>
+    </nav>
+
+    <br><br>
+    <form enctype="multipart/form-data" action="test_upload.html" method="POST"
+                                    onsubmit="AJAXSubmit(this); return false;">
+
+   <input id='file-input' type='file' name='files[]' multiple/>
+    <!-- <button type="submit" class="pure-button pure-button-primary">Submit</button> -->
+          <button type='submit'>Submit</button>
+    </form>
+    <div id='file-list-display'></div>
+
+<script>
+"use strict";
+
+function ajaxSuccess () {
+  console.log(this.responseText);
+}
+
+function AJAXSubmit (oFormElement) {
+  if (!oFormElement.action) { return; }
+  var oReq = new XMLHttpRequest();
+  oReq.onload = ajaxSuccess;
+  if (oFormElement.method.toLowerCase() === "post") {
+    oReq.open("post", oFormElement.action);
+    oReq.send(new FormData(oFormElement));
+  } else {
+    var oField, sFieldType, nFile, sSearch = "";
+    for (var nItem = 0; nItem < oFormElement.elements.length; nItem++) {
+      oField = oFormElement.elements[nItem];
+      if (!oField.hasAttribute("name")) { continue; }
+      sFieldType = oField.nodeName.toUpperCase() === "INPUT" ?
+          oField.getAttribute("type").toUpperCase() : "TEXT";
+      if (sFieldType === "FILE") {
+        for (nFile = 0; nFile < oField.files.length;
+            sSearch += "&" + escape(oField.name) + "=" + escape(oField.files[nFile++].name));
+      } else if ((sFieldType !== "RADIO" && sFieldType !== "CHECKBOX") || oField.checked) {
+        sSearch += "&" + escape(oField.name) + "=" + escape(oField.value);
+      }
+    }
+    oReq.open("get", oFormElement.action.replace(/(?:\?.*)?$/, sSearch.replace(/^&/, "?")), true);
+    oReq.send(null);
+  }
+}
+</script>
+
+</body>
+</html>
