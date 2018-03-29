@@ -2,58 +2,130 @@
 '''handles server side database'''
 
 import os
+# from subprocess import (Popen, PIPE)
 # import datetime
 import crypt
 from hmac import compare_digest as compare_hash
-from shutil import copy
+from shutil import copytree
 import redis
 import server
+from jinja2 import Template
 
-REDIS_OBJ = redis.StrictRedis("", port=6379)
+
+# REDIS_OBJ = redis.StrictRedis("", port=6379)
+REDIS_OBJ = redis.StrictRedis()
+CWD = os.getcwd()
 
 
-def auth_login(login_details):
-    if not login_details.pop("op") == 'login':
-        return False
-    if login_details.get("user", False) and login_details.get("password", False):
-        username, passwd = login_details["user"], login_details["password"]
+def handle_login(request, response, login_details):
+    print("handle_login")
+    username, passwd = login_details["user"], login_details["password"]
     hashed_passwd = REDIS_OBJ.get(username)
-    if compare_hash(hashed_passwd, crypt.crypt(passwd, hashed_passwd)):
-        return (username, True) #get_homepage()
-    print("Wrong password")
-    return False
+    if hashed_passwd:
+        hashed_passwd = hashed_passwd.decode()
+        if compare_hash(hashed_passwd, crypt.crypt(passwd, hashed_passwd)):
+            host = request["header"]["Host"]
+            redir_path = "user/{}/home.html".format(username).encode()
+            print(redir_path)
 
-def save_signup(signup_details):
-    if not signup_details.pop("op") == 'signup':
-        return False
-    if len(signup_details) < 6:
-        print("Missing details")
-        return False
-    fname, lname, email, username, passwd = list(signup_details.values())
-    if REDIS_OBJ.get(username):
-        print("username already taken")
-        # check already registered email too
-    if len(passwd) < 8:
-        print("password should have minimum of 8 characters")
-        return False
+            # server.redirect(request, response, redirected_path, 307)
+            return read_html("static/home.html").replace(b"{redirect}", redir_path) #get_homepage()
+    return read_html("static/index.html").replace(b"{reason}", b'wrong credentials')
 
-    hashed_passwd = crypt.crypt(passwd)
-    detail_names = [fname, lname, email, username, hashed_passwd]
+    # fail_reason = {'reason': 'wrong credentials'}
+
+def handle_signup(request, response, signup_details):
+    print("handle_signup")
+    validity_status = signup_validity(signup_details)
+    if not validity_status[0]:
+        res_page = read_html('static/failed_signup.html')
+        return res_page.replace(b"{reason}", validity_status[1])
+    username, password = signup_details["username"], signup_details["password"]
+    signup_details["password"] = crypt.crypt(password)
+    # detail_names = [fname, lname, email, username, hashed_passwd]
     user_id = REDIS_OBJ.incr("users")
-    REDIS_OBJ.hmset(name="user:{}".format(user_id), mapping=dict(zip(detail_names, signup_details)))
-    REDIS_OBJ.hmset(name=username, mapping=dict(zip(detail_names, signup_details)))
-    REDIS_OBJ.set(username, hashed_passwd)
+    REDIS_OBJ.hmset(name="user:{}".format(user_id), mapping=signup_details)
+    REDIS_OBJ.hmset(name=username, mapping=signup_details)
+    # REDIS_OBJ.hmset(name="user:{}".format(user_id), dict(zip(detail_names, signup_details)))
+    # REDIS_OBJ.hmset(name=username, mapping=dict(zip(detail_names, signup_details)))
+    REDIS_OBJ.set(username, signup_details["password"])
+    REDIS_OBJ.save()
     # REDIS_OBJ.set(username, userid)
+    src = os.path.abspath("static/login")
+    dst = os.path.abspath("static/user/{}".format(username))
+    if not os.path.exists(dst):
+        copytree(src, dst)
+    redirected_path = "user/{}/home.html".format(username)
+    # server.redirect(request, response, redirected_path, 307)
+    return read_html("static/user/{}/index.html".format(username))# return login page again
+#
 
-    os.mkdir("./users_cloud/{}".format(username))
-    src_file = os.path.abspath("./static/login/files.html")
-    dst_file = os.path.abspath("./users_cloud/{}/files.html".format(username))
-    copy(src_file, dst_file)
-    return (username, user_id) # return login page again
 
-def post_handling():
-    server.handle_post_methods(body="parsed_request_body", op_type="login", function=auth_login)
-    server.handle_post_methods(body="parsed_request_body", op_type="signup", function=save_signup)
+def read_html(html):
+    print("read_html")
+    html_abspath = os.path.abspath(html)
+    with open(html_abspath, "rb") as page:
+        html_bytes = page.read()
+        return html_bytes
 
-def add_route():
-    pass
+
+def signup_validity(signup_details):
+    print("signup_validity")
+    if '' in [i.strip() for i in signup_details.values()]:
+        return False, b"Empty spaces are not valid"
+    if len(signup_details) < 6:
+        return False, b"Missing details"
+    username, passwd = signup_details["username"], signup_details["password"]
+    if REDIS_OBJ.get(username):
+        return False, b"username already taken"
+    if REDIS_OBJ.get("{}.email".format(username)):
+        return False, b"Already registered with this email"
+    if len(passwd) < 8:
+        return False, b"password should have minimum of 8 characters"
+    return True, b"valid"
+
+def save_uploads(request, response, parsed_request_body):
+    # parsed_request_body = request["body"]
+    user = request["header"]["Referer"].split("/")[-2]
+    # user, _ = post_from
+    user_dir = 'static/user/{}/'.format(user)
+    for file in parsed_request_body:
+        filename = os.path.abspath(user_dir + file)
+        with open(filename, "wb") as fname:
+            fname.write(parsed_request_body[file]["body"])
+
+        # server.redirect(request, response, redirected_path, 307)
+    user_files = os.listdir(user_dir)
+    return read_html(user_dir  + "files.html")
+
+
+def handle_entry(request, response, parsed_request_body):
+    print("signup_validity")
+    # parsed_request_body = request["body"]
+    post_type = parsed_request_body.get("op", False)
+    if post_type and post_type == 'login':
+        return handle_login(request, response, parsed_request_body)
+    return handle_signup(request, response, parsed_request_body)
+
+def handle_post(request, response):
+    header = {"Content-Type": "text/html"}
+    response["header"].update(header)
+    # server.res_header(response, header)
+    # server.res_header(response, header)
+    # print("handle_post")
+    parsed_request_body = request["body"]
+    if not 'op' in parsed_request_body:
+    # if 'test_upload' in post_from:
+        return save_uploads(request, response, parsed_request_body)
+    return handle_entry(request, response, parsed_request_body)
+
+
+def main():
+    # Popen(["redis-server"], stdout=PIPE, stderr=PIPE,)
+    server.add_route("POST", handle_post)
+
+    server.execute_server()
+
+if __name__ == '__main__':
+    os.system("clear||cls")
+    main()
