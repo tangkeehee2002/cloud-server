@@ -22,9 +22,6 @@ ALLOWED_DOMAINS = ("localhost:8000/index.html", )
 def res_header(response, header):
     """Add header provided by application to response header."""
     response["header"].update(header)
-    # print(header)
-    # print(response)
-
 
 def res_status(response, status):
     """Add status provided by application to response header."""
@@ -46,13 +43,7 @@ def build_regex_path(path):
 
 def add_route(method, function):
     """Add routes regex amd function to ROUTES dictionary."""
-    # regex_path = build_regex_path(path)
     ROUTES[method] = function
-    # ROUTES[method][regex_path] = function
-# def add_route(method, path, function):
-#     """Add routes regex amd function to ROUTES dictionary."""
-#     regex_path = build_regex_path(path)
-#     ROUTES[method][regex_path] = function
 
 
 def redirect(request, response, path, code):
@@ -65,7 +56,6 @@ def redirect(request, response, path, code):
 
 def request_handler(request):
     response = {"protocol_version": "HTTP/1.1", "header": {}}
-    # response = "\nHTTP/1.1 200 OK\n\nHello, World!\n"
     next_ = create_next()
     return next_(request, response, next_)
 
@@ -83,7 +73,6 @@ def create_next():
 
 def static_file_handler(request, response, next_):
     print("static_file_handler")
-    # if request["method"] == "GET" or (request["method"] == "POST" and request["path"]):
     if request["method"] != "GET":
         return next_(request, response, next_)
     print(request["path"])
@@ -104,37 +93,12 @@ def route_handler(request, response, next_):
     function = ROUTES.get(request["method"], False)
     if not function:
         return next_(request, response, next_)
-    # post_from =  request["header"]["Referer"].split(request["header"]["Host"])[-1].split(".html")[0]
-    # post_from = post_from.split("/")
-    # res_body = function(request, response, post_from)
     res_body = function(request, response)
     # print(res_body)
     # print(type(res_body))
     response["content"] = res_body
-    # if not isinstance(res_body, bytes):  #for redirect
-    #     return res_body
-    # if res_body is not None:
-        # response["content"] = res_body.encode()
     return ok_200_handler(request, response)
 
-#
-# def route_handler(request, response, next_):
-#     print("route_handler")    # server.res_status(response, 302)
-#     flag = 0
-#     routes = ROUTES[request["method"]]
-#     for regex, function in routes.items():
-#         answer = re.match(regex, request["path"])
-#         if answer:
-#             res_body = function(request, response, **answer.groupdict())
-#             flag = 1
-#             break
-#     if flag == 0:
-#         return next_(request, response, next_)
-#     if isinstance(res_body, bytes):  #for redirect
-#         return res_body
-#     if res_body is not None:
-#         response["content"] = res_body.encode()
-#     return ok_200_handler(request, response)
 
 
 def ok_200_handler(request, response):
@@ -195,21 +159,15 @@ def header_parser(header_stream):
     return request
 
 
-# def body_parser(request):
 def body_parser(body_stream, content_type):
     print("body_parser")
-    # content_type = request["header"]["Content-Type"]
-    # body_stream = request["body"]
     if content_type == "application/json":
         parsed_request_body = json.loads(body_stream.decode())
     elif content_type == "application/x-www-form-urlencoded":
         parsed_request_body = query_parser(body_stream.decode())
     elif "multipart/form-data" in content_type:
         parsed_request_body = form_parser(body_stream, content_type)
-    # request["body"] = parsed_request_body
-    # print(parsed_request_body)
     return parsed_request_body
-    # return next_(request, response, next_)
 
 
 def subhdr2dict(subhdr):
@@ -224,17 +182,11 @@ def subhdr2dict(subhdr):
 def form_parser(body_stream, content_type):
     boundary_value = content_type.split(";")[-1].split("=")[-1]
     boundary = "--{}".format(boundary_value).encode()
-    # binary_body_stream = binascii.a2b_base64(body_stream)
-    # decoded_body_stream = base64.encodebytes(body_stream)
-    # print(binary_body_stream)
-    # print(body_stream)
-    # multiform_data = binary_body_stream.split(boundary)
     multiform_data = body_stream.split(boundary)[1:-1]
     # print(multiform_data)
     # print(len(multiform_data))
     data_list = [form.split((CRLF*2).encode()) for form in multiform_data]  #list of (hdr, body)
     form_hdrs = [subhdr2dict(part[0]) for part in data_list]
-    # form_body = [part[1] for part in data_list]
     form_dict = {}
     for index, hdr in enumerate(form_hdrs):
         form_dict[hdr.pop("filename")] = {"header": hdr, "body": data_list[index][1]}
