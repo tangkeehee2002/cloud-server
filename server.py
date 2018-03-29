@@ -3,13 +3,14 @@
 
 import os
 import re
-import json
 # import base64
 import asyncio
+from http import HTTPStatus
+import json
 import mimetypes
 # import binascii
-from http import HTTPStatus
 from email.utils import (formatdate, CRLF, EMPTYSTRING)
+import middlewares
 # import logging
 
 METHODS = ("GET", "POST", "HEAD", "OPTIONS")
@@ -20,9 +21,7 @@ ALLOWED_DOMAINS = ("localhost:8000/index.html", )
 def handle_post_methods(body, op_type, function):
     pass
 
-
-
-# def body_handler(request, response, next_):    # server.res_status(response, 302)
+# def body_handler(request, response, next_):  # server.res_status(response, 302)
 #     # header = {"Content-Type: "text/html"}
 #     # server.res_header(request, response, header)
 #     content_type = request["header"].get("Content-Type", False)
@@ -33,13 +32,15 @@ def handle_post_methods(body, op_type, function):
 
 
 def request_handler(request):
-    response = {"protocol_version" : "HTTP/1.1", "header": {}}
+    response = {"protocol_version": "HTTP/1.1", "header": {}}
     # response = "\nHTTP/1.1 200 OK\n\nHello, World!\n"
     next_ = create_next()
     return next_(request, response, next_)
 
+
 def create_next():
     counter = 0
+
     def next_func(request, response, next_):
         nonlocal counter
         func = HANDLERS[counter]
@@ -47,8 +48,10 @@ def create_next():
         return func(request, response, next_)
     return next_func
 
+
 def static_file_handler(request, response, next_):
     if request["method"] == "GET" or (request["method"] == "POST" and request["path"]):
+    # if request["method"] == "GET":
         if request["path"][-1] == "/":
             request["path"] += "index.html"
         filename = "static{}".format(request["path"])
@@ -73,7 +76,7 @@ def route_handler(request, response, next_):    # server.res_status(response, 30
             break
     if flag == 0:
         return next_(request, response, next_)
-    if isinstance(res_body, bytes): # for redirect
+    if isinstance(res_body, bytes):  #for redirect
         return res_body
     if res_body is not None:
         response["content"] = res_body.encode()
@@ -126,11 +129,11 @@ def res_status(response, status):
         raise ValueError("Invalid status code")
 
 
-
 def get_query_content(request):
     path, query_params = request["path"].split("?")
     query_content = dict([query.split("=") for query in query_params.split("&")])
     return (path, query_content)
+
 
 def header_parser(header_stream):
     req_line, *header_list = header_stream.split("\r\n")
@@ -146,7 +149,10 @@ def header_parser(header_stream):
     return request
 
 
+# def body_parser(request):
 def body_parser(body_stream, content_type):
+    # content_type = request["header"]["Content-Type"]
+    # body_stream = request["body"]
     if content_type == "application/json":
         parsed_request_body = json.loads(body_stream.decode())
     elif content_type == "application/x-www-form-urlencoded":
@@ -156,12 +162,14 @@ def body_parser(body_stream, content_type):
     print(parsed_request_body)
     return parsed_request_body
 
+
 def subhdr2dict(subhdr):
     subhdr = subhdr.decode().strip().replace('"', '')
     subhdr_lines = subhdr.split("Content-Disposition: form-data; ")[-1].split(CRLF)
     subhdr_dict = dict([i.split("=") for i in subhdr_lines[0].split("; ")])
     subhdr_dict.update(dict([subhdr_lines[1].split(":")]))
     return subhdr_dict
+
 
 def form_parser(body_stream, content_type):
     boundary_value = content_type.split(";")[-1].split("=")[-1]
@@ -174,7 +182,7 @@ def form_parser(body_stream, content_type):
     multiform_data = body_stream.split(boundary)[1:-1]
     # print(multiform_data)
     # print(len(multiform_data))
-    data_list = [form.split((CRLF*2).encode()) for form in multiform_data] # list of (hdr, body)
+    data_list = [form.split((CRLF*2).encode()) for form in multiform_data]  #list of (hdr, body)
     form_hdrs = [subhdr2dict(part[0]) for part in data_list]
     # form_body = [part[1] for part in data_list]
     form_dict = {}
@@ -200,11 +208,30 @@ async def handle_message(reader, writer):
         con_len = request["header"]["Content-Length"]
         content_type = request["header"]["Content-Type"]
         body_stream = await reader.readexactly(int(con_len))
-        request["body"] = body_parser(body_stream, content_type)
+        parsed_request_body = body_parser(body_stream, content_type)
+        handle_post_body(parsed_request_body)
+        # request["body"] = body_parser(body_stream, content_type)
     response = request_handler(request)
     writer.write(response)
     await writer.drain()
     writer.close()
+
+def handle_authentication(parsed_request_body):
+        registered_user = save_signup(parsed_request_body)
+        
+
+
+
+
+
+
+def handle_post_body(parsed_request_body):
+    if 'op' not in parsed_request_body:
+        for part in parsed_request_body:
+            with open(part, "wb") as fname:
+                fname.write(parsed_request_body[part]["body"])
+    if parsed_request_body["op"] == "signup":
+        pass
 
 
 def execute_server(host='0.0.0.0', port=8000):
