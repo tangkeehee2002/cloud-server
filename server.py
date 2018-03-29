@@ -9,26 +9,58 @@ from http import HTTPStatus
 import json
 import mimetypes
 # import binascii
-from email.utils import (formatdate, CRLF, EMPTYSTRING)
-import middlewares
+from email.utils import (formatdate, CRLF)
+from email.header import SPACE
+# import middlewares
 # import logging
 
-METHODS = ("GET", "POST", "HEAD", "OPTIONS")
+METHODS = ("GET", "POST")
 ROUTES = {method: {} for method in METHODS}
 ALLOWED_DOMAINS = ("localhost:8000/index.html", )
 
 
-def handle_post_methods(body, op_type, function):
-    pass
+def res_header(response, header):
+    """Add header provided by application to response header."""
+    response["header"].update(header)
+    # print(header)
+    # print(response)
 
-# def body_handler(request, response, next_):  # server.res_status(response, 302)
-#     # header = {"Content-Type: "text/html"}
-#     # server.res_header(request, response, header)
-#     content_type = request["header"].get("Content-Type", False)
-#     if content_type:
-#         request["body"] = json.loads(request["body"].decode())
-#         # print(f'\n\n\n\n{request["body"]}\n\n\n')
-#     return next_(request, response, next_)
+
+def res_status(response, status):
+    """Add status provided by application to response header."""
+    status_dict = HTTPStatus.__dict__['_value2member_map_']
+    status = status_dict.get(status, False)
+    if status:
+        response_phrase = status.name.replace("_", " ").title()
+        response["status"] = "{0} {1}".format(status.value, response_phrase)
+    else:
+        raise ValueError("Invalid status code")
+
+
+def build_regex_path(path):
+    """Bulid path regex for routes."""
+    pattern_obj = re.compile(r'(<\w+>)')
+    regex = pattern_obj.sub(r'(?P\1.+)', path)
+    return '^{}$'.format(regex)
+
+
+def add_route(method, function):
+    """Add routes regex amd function to ROUTES dictionary."""
+    # regex_path = build_regex_path(path)
+    ROUTES[method] = function
+    # ROUTES[method][regex_path] = function
+# def add_route(method, path, function):
+#     """Add routes regex amd function to ROUTES dictionary."""
+#     regex_path = build_regex_path(path)
+#     ROUTES[method][regex_path] = function
+
+
+def redirect(request, response, path, code):
+    """Redirect the response to Location."""
+    res_status(response, code)
+    response["header"]["Location"] = path
+    res = response_handler(request, response)
+    return res
 
 
 def request_handler(request):
@@ -50,14 +82,16 @@ def create_next():
 
 
 def static_file_handler(request, response, next_):
-    if request["method"] == "GET" or (request["method"] == "POST" and request["path"]):
-    # if request["method"] == "GET":
-        if request["path"][-1] == "/":
-            request["path"] += "index.html"
-        filename = "static{}".format(request["path"])
-        if not os.path.isfile(filename):
-            return next_(request, response, next_)
-        response["Content-Type"] = mimetypes.guess_type(request["path"])[0]
+    print("static_file_handler")
+    # if request["method"] == "GET" or (request["method"] == "POST" and request["path"]):
+    if request["method"] != "GET":
+        return next_(request, response, next_)
+    print(request["path"])
+    if request["path"][-1] == "/":
+        request["path"] += "index.html"
+    response["Content-Type"] = mimetypes.guess_type(request["path"])[0]
+    filename = "static{}".format(request["path"])
+    if os.path.isfile(filename):
         with open(filename, "rb") as file_obj:
             res_body = file_obj.read()
         response["content"] = res_body
@@ -65,22 +99,42 @@ def static_file_handler(request, response, next_):
     return next_(request, response, next_)
 
 
-def route_handler(request, response, next_):    # server.res_status(response, 302)
-    flag = 0
-    routes = ROUTES[request["method"]]
-    for regex, function in routes.items():
-        answer = re.match(regex, request["path"])
-        if answer:
-            res_body = function(request, response, **answer.groupdict())
-            flag = 1
-            break
-    if flag == 0:
+def route_handler(request, response, next_):
+    print("route_handler")    # server.res_status(response, 302)
+    function = ROUTES.get(request["method"], False)
+    if not function:
         return next_(request, response, next_)
-    if isinstance(res_body, bytes):  #for redirect
-        return res_body
-    if res_body is not None:
-        response["content"] = res_body.encode()
+    # post_from =  request["header"]["Referer"].split(request["header"]["Host"])[-1].split(".html")[0]
+    # post_from = post_from.split("/")
+    # res_body = function(request, response, post_from)
+    res_body = function(request, response)
+    # print(res_body)
+    # print(type(res_body))
+    response["content"] = res_body
+    # if not isinstance(res_body, bytes):  #for redirect
+    #     return res_body
+    # if res_body is not None:
+        # response["content"] = res_body.encode()
     return ok_200_handler(request, response)
+
+#
+# def route_handler(request, response, next_):
+#     print("route_handler")    # server.res_status(response, 302)
+#     flag = 0
+#     routes = ROUTES[request["method"]]
+#     for regex, function in routes.items():
+#         answer = re.match(regex, request["path"])
+#         if answer:
+#             res_body = function(request, response, **answer.groupdict())
+#             flag = 1
+#             break
+#     if flag == 0:
+#         return next_(request, response, next_)
+#     if isinstance(res_body, bytes):  #for redirect
+#         return res_body
+#     if res_body is not None:
+#         response["content"] = res_body.encode()
+#     return ok_200_handler(request, response)
 
 
 def ok_200_handler(request, response):
@@ -109,7 +163,7 @@ def response_handler(request, response):
 
 
 def make_response(response):
-    res = response["protocol_version"] + EMPTYSTRING + response["status"] + CRLF
+    res = response["protocol_version"] + SPACE + response["status"] + CRLF
     if response["header"]:
         for key, value in response["header"].items():
             res += "{0}: {1}{2}".format(key, value, CRLF)
@@ -118,15 +172,6 @@ def make_response(response):
     if "content" in response:
         res_bytes += response["content"]
     return res_bytes
-
-def res_status(response, status):
-    status_dict = HTTPStatus.__dict__['_value2member_map_']
-    status = status_dict.get(status, False)
-    if status:
-        response_phrase = status.name.replace("_", " ").title()
-        response["status"] = "{0} {1}".format(status.value, response_phrase)
-    else:
-        raise ValueError("Invalid status code")
 
 
 def get_query_content(request):
@@ -143,6 +188,7 @@ def header_parser(header_stream):
         request["path"], request["query_content"] = get_query_content(request)
 
     header = dict([hdr.split(": ") for hdr in header_list])
+    # print(header)
     if "Cookie" in header:
         header["Cookie"] = dict([cookie.split("=") for cookie in header["Cookie"].split(";")])
     request["header"] = header
@@ -151,6 +197,7 @@ def header_parser(header_stream):
 
 # def body_parser(request):
 def body_parser(body_stream, content_type):
+    print("body_parser")
     # content_type = request["header"]["Content-Type"]
     # body_stream = request["body"]
     if content_type == "application/json":
@@ -159,8 +206,10 @@ def body_parser(body_stream, content_type):
         parsed_request_body = query_parser(body_stream.decode())
     elif "multipart/form-data" in content_type:
         parsed_request_body = form_parser(body_stream, content_type)
-    print(parsed_request_body)
+    # request["body"] = parsed_request_body
+    # print(parsed_request_body)
     return parsed_request_body
+    # return next_(request, response, next_)
 
 
 def subhdr2dict(subhdr):
@@ -168,6 +217,7 @@ def subhdr2dict(subhdr):
     subhdr_lines = subhdr.split("Content-Disposition: form-data; ")[-1].split(CRLF)
     subhdr_dict = dict([i.split("=") for i in subhdr_lines[0].split("; ")])
     subhdr_dict.update(dict([subhdr_lines[1].split(":")]))
+    # print(subhdr_dict)
     return subhdr_dict
 
 
@@ -188,7 +238,7 @@ def form_parser(body_stream, content_type):
     form_dict = {}
     for index, hdr in enumerate(form_hdrs):
         form_dict[hdr.pop("filename")] = {"header": hdr, "body": data_list[index][1]}
-    print(form_hdrs)
+    # print(form_hdrs)
     # print(form_dict)
     return form_dict
 
@@ -200,38 +250,21 @@ def query_parser(query_string):
 
 
 async def handle_message(reader, writer):
-    # addr = writer.get_extra_info('peername')
-    header = await reader.readuntil(b'\r\n\r\n')
-    header_stream = header.decode().split("\r\n\r\n")[0]
+    # addr = writer.get_extra_info('peername', default=None)
+    # print(addr)
+    header = await reader.readuntil((CRLF*2).encode())
+    header_stream = header.decode().split(CRLF*2)[0]
     request = header_parser(header_stream)
     if "Content-Length" in request["header"]:
         con_len = request["header"]["Content-Length"]
         content_type = request["header"]["Content-Type"]
         body_stream = await reader.readexactly(int(con_len))
-        parsed_request_body = body_parser(body_stream, content_type)
-        handle_post_body(parsed_request_body)
-        # request["body"] = body_parser(body_stream, content_type)
+        request["body"] = body_parser(body_stream, content_type)
+        print(request["body"])
     response = request_handler(request)
     writer.write(response)
     await writer.drain()
     writer.close()
-
-def handle_authentication(parsed_request_body):
-        registered_user = save_signup(parsed_request_body)
-        
-
-
-
-
-
-
-def handle_post_body(parsed_request_body):
-    if 'op' not in parsed_request_body:
-        for part in parsed_request_body:
-            with open(part, "wb") as fname:
-                fname.write(parsed_request_body[part]["body"])
-    if parsed_request_body["op"] == "signup":
-        pass
 
 
 def execute_server(host='0.0.0.0', port=8000):
