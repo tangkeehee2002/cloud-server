@@ -72,10 +72,10 @@ def create_next():
 
 
 def static_file_handler(request, response, next_):
-    print("static_file_handler")
+    # print("static_file_handler")
     if request["method"] != "GET":
         return next_(request, response, next_)
-    print(request["path"])
+    # print(request["path"])
     if request["path"][-1] == "/":
         request["path"] += "index.html"
     response["Content-Type"] = mimetypes.guess_type(request["path"])[0]
@@ -89,7 +89,7 @@ def static_file_handler(request, response, next_):
 
 
 def route_handler(request, response, next_):
-    print("route_handler")    # server.res_status(response, 302)
+    # print("route_handler")    # server.res_status(response, 302)
     function = ROUTES.get(request["method"], False)
     if not function:
         return next_(request, response, next_)
@@ -160,7 +160,7 @@ def header_parser(header_stream):
 
 
 def body_parser(body_stream, content_type):
-    print("body_parser")
+    # print("body_parser")
     if content_type == "application/json":
         parsed_request_body = json.loads(body_stream.decode())
     elif content_type == "application/x-www-form-urlencoded":
@@ -212,7 +212,7 @@ async def handle_message(reader, writer):
         content_type = request["header"]["Content-Type"]
         body_stream = await reader.readexactly(int(con_len))
         request["body"] = body_parser(body_stream, content_type)
-        print(request["body"])
+        # print(request["body"])
     response = request_handler(request)
     writer.write(response)
     await writer.drain()
