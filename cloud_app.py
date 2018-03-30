@@ -86,7 +86,7 @@ def save_uploads(request, response, parsed_request_body):
     user = request["header"]["Referer"].split("/")[-2]
     upload_dir = "static/user/{}/uploads/".format(user)
     for file, body in parsed_request_body.items():
-        filename = abspath(upload_dir + file)
+        filename = abspath(upload_dir + file.replace(" ", "_"))
         with open(filename, "wb") as fname:
             fname.write(body["body"])
 
@@ -96,7 +96,7 @@ def save_uploads(request, response, parsed_request_body):
     return read_html("static/user/{}/files.html".format(user))
 
 def update_filepage(upload_dir, file_page):
-    file_list = listdir(upload_dir)
+    file_list = [i.replace(" ", "_") for i in listdir(upload_dir)]
     fstat_list = []
     for  num, fname in enumerate(file_list):
         fstat = stat(abspath(upload_dir +"/"+ fname))
@@ -118,8 +118,8 @@ def handle_entry(request, response, parsed_request_body):
 
 def handle_post(request, response):
     header = {"Content-Type": "text/html"}
-    response["header"].update(header)
-    # server.res_header(response, header)
+    # response["header"].update(header)
+    server.res_header(response, header)
     # server.res_header(response, header)
     # print("handle_post")
     parsed_request_body = request["body"]
