@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <title>Files</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="../css/bulma/css/bulma.css">
+    <link rel="stylesheet" href="../../css/pure/pure.css">
+    <!-- <script defer src="../css/fontawesome/svg-with-js/js/fontawesome-all.js"></script> -->
+</head>
+
+<body>
+     <nav class="level">
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href="home.html">Home</a>
+      </p>
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href="files.html">Files</a>
+      </p>
+      <p class="level-item has-text-centered">
+        <img src="../pics/cloud.jpg" alt="" style="height: 100px;">
+      </p>
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href="test_upload.html" target="_blank">Upload</a>
+      </p>
+      <p class="level-item has-text-centered">
+        <a class="link is-info" href=logout.htmlLogout</a>
+      </p>
+    </nav>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th><abbr title="slno">Sl.no</abbr></th>
+          <th><abbr tile="Name">Name</th>
+          <th><abbr title="Size (in KB's)"></abbr>Size</th>
+          <th><abbr title="Date"></abbr>Upload date</th>
+        </tr>
+      </thead>
+
+      <tbody>
+           {% for flist in flist_template %}
+        <tr>
+          <th>{{ flist[0] }}</th>
+          <td><a href=uploads/{{ flist[1] }} title="file_uploaded">{{ flist[1] }}</a></td>
+          <td>{{ flist[2] }}</td>
+          <td>{{ flist[3] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</body>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>
+        <strong>Cloud storage</strong> by <a href="https://github.com/R3DDY97">Venky</a>. The source code is licensed
+        <a href="http://opensource.org/licenses/mit-license.php">MIT</a>. The website content
+        is licensed <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY NC SA 4.0</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+</html>
