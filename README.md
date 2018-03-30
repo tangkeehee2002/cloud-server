@@ -13,7 +13,7 @@ Minimal cloud storage server
 
 * Install and start redis-server
 
-* Open browser with `localhost:8000` or `<ip_address>:8000
+* Open browser with `localhost:8000` or `<ip_address>:8000`
 
 
 
