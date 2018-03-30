@@ -1,5 +1,5 @@
 # cloud-server
-Minimal cloud storage server
+Minimal customised cloud storage server intended mainly for self hosting cloud storage 
 
 ## Usage
 
