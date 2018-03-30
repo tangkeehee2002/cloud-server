@@ -3,17 +3,20 @@ Minimal cloud storage server
 
 ## Usage
 
-
-
-`$ git clone https://github.com/R3DDY97/cloud-server`
-
-`$ cd cloud-server  && pip3 install -r requirements`
-
-`$ python3 cloud_app.py`
-
 * Install and start redis-server
 
-* Open browser with `localhost:8000` or `<ip_address>:8000`
+* Download and start cloud_server
+
+    ```
+    $ git clone https://github.com/R3DDY97/cloud-server
+
+    $ cd cloud-server  && pip3 install -r requirements
+
+    $ python3 cloud_app.py
+    ```
+
+
+* Open browser with `localhost:8000` or `<ur_ip_address>:8000`
 
 
 
