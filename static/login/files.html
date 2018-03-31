@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="../css/bulma/css/bulma.css">
     <link rel="stylesheet" href="../../css/pure/pure.css">
-    <script defer src="../css/fontawesome/svg-with-js/js/fontawesome-all.js"></script>
+    <!-- <script defer src="../css/fontawesome/svg-with-js/js/fontawesome-all.js"></script> -->
 </head>
 
 <body>
@@ -21,82 +21,33 @@
         <img src="../pics/cloud.jpg" alt="" style="height: 100px;">
       </p>
       <p class="level-item has-text-centered">
-        <a class="link is-info" href="upload.html" target="_blank">Upload</a>
+        <a class="link is-info" href="test_upload.html" target="_blank">Upload</a>
       </p>
       <p class="level-item has-text-centered">
-        <a class="link is-info" href=../index.html>Logout</a>
+        <a class="link is-info" href=logout.htmlLogout</a>
       </p>
     </nav>
-
-
-    <!-- <section class="section">
-      <div class="container">
-        <h1 class="title">Cloud Storage Disk</h1><br>
-        <h2 class="subtitle">
-          List of files stored in the <strong>cloud</strong> sorted into mimetypes
-        </h2>
-      </div>
-    </section> -->
-
-
-    <!-- <div class="tabs is-toggle is-toggle-rounded is-centered is-medium">
-      <ul>
-        <li class="is-active">
-          <a>
-            <span class="icon"><i class="fas fa-image"></i></span>
-            <span>Documents</span>
-          </a>
-        </li> -->
-        <!-- <li>
-          <a>
-            <span class="icon"><i class="fas fa-music"></i></span>
-            <span>Music</span>
-          </a>
-        </li>
-        <li>
-          <a>
-            <span class="icon"><i class="fas fa-film"></i></span>
-            <span>Videos</span>
-          </a>
-        </li>
-        <li>
-          <a>
-            <span class="icon"><i class="fas fa-file-alt"></i></span>
-            <span>Pictures</span>
-          </a>
-        </li> -->
-      </ul>
-    </div>
-
-
-
 
     <table class="table">
       <thead>
         <tr>
-          <th><abbr title="slno">Slno</abbr></th>
+          <th><abbr title="slno">Sl.no</abbr></th>
           <th>Name</th>
-          <th><abbr title="Size"></abbr>Size</th>
+          <th><abbr title="Size (in KB's)"></abbr>Size</th>
           <th><abbr title="Date"></abbr>Date</th>
           <th>Description</th>
         </tr>
       </thead>
 
       <tbody>
+          {% for f in file_list %}
         <tr>
-          <th>1</th>
-          <td><a href="" title="Doc">Documentation.pdf</a></td>
-          <td>2MB</td>
-          <td>23/03/2018</td>
-          <td>Cloud storage Documentation<a href="" title="cloud"></a></td>
+          <th>{{ f[0] }}</th>
+          <td><a href={{ f[1] }} title="Doc">{{ f[2] }}</a></td>
+          <td>{{ f[3] }}</td>
+          <td>{{ f[4] }}</td>
         </tr>
-        <tr>
-          <th>2</th>
-          <td><a href="" title="source">Source code</a></td>
-          <td>220KB</td>
-          <td>22/03/2018</td>
-          <td>Soure code<a href="" title="source"></a></td>
-        </tr>
+        {% endfor %}
       </tbody>
     </table>
 </body>

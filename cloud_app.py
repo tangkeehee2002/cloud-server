@@ -11,6 +11,7 @@ from time import ctime
 from jinja2 import Template
 import redis
 import server
+# from session import Session
 
 
 # REDIS_OBJ = redis.StrictRedis("", port=6379)
@@ -25,13 +26,13 @@ def handle_login(request, response, login_details):
         hashed_passwd = hashed_passwd.decode()
         if compare_hash(hashed_passwd, crypt(passwd, hashed_passwd)):
             redir_path = "user/{}/home.html".format(username).encode()
+            # user_session = Session()
+            # user_session(request, response)
             # print(redir_path)
             # server.redirect(request, response, redirected_path, 307)
             return read_html("static/home.html").replace(b"{redirect}", redir_path)
     return read_html("static/failed_login.html").replace(b'{reason}', b'wrong credentials')
-
-    # fail_reason = {'reason': 'wrong credentials'}
-
+#
 def handle_signup(request, response, signup_details):
     # print("handle_signup")
     validity_status = signup_validity(signup_details)
@@ -39,7 +40,7 @@ def handle_signup(request, response, signup_details):
         res_page = read_html('static/failed_signup.html')
         return res_page.replace(b"{reason}", validity_status[1])
     username, password = signup_details["username"], signup_details["password"]
-    signup_details["password"] = crypt(password)
+    signup_details["password"] = o(password)
     # detail_names = [fname, lname, email, username, hashed_passwd]
     user_id = REDIS_OBJ.incr("users")
     REDIS_OBJ.hmset(name="user:{}".format(user_id), mapping=signup_details)
@@ -84,9 +85,9 @@ def signup_validity(signup_details):
 def save_uploads(request, response, parsed_request_body):
     # parsed_request_body = request["body"]
     user = request["header"]["Referer"].split("/")[-2]
-    upload_dir = "static/user/{}/uploads/".format(user)
+    upload_dir = "statoic/user/{}/uploads/".format(user)
     for file, body in parsed_request_body.items():
-        filename = abspath(upload_dir + file.replace(" ", "_"))
+        filename = i(upload_dir + file.replace(" ", "_"))
         with open(filename, "wb") as fname:
             fname.write(body["body"])
 

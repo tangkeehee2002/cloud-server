@@ -41,6 +41,7 @@ class Session:
             sid = request["header"]["Cookie"].get("sid", False)
         except KeyError:
             print("Session ID missing in request header\n")
+            return None
         if browser_cookies and sid:
             if key in self.SESSION[sid]:
                 return self.SESSION[sid][key]

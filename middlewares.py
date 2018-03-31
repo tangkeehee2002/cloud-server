@@ -13,31 +13,21 @@ def session_middleware(request, response):
         sid = request["header"]["Cookie"].get("sid", False)
     if sid:
         return request, response
-    cookie = str(uuid4())
-    response["header"]["Set-Cookie"] = "sid={}".format(cookie)
-    SESSIONS[cookie] = {}
+    sid = str(uuid4())
+    response["header"]["Set-Cookie"] = "sid={}".format(sid)
+    SESSIONS[sid] = {}
     return request, response
 
-
-def get_session(request):
+def handle_sid(request, option):
     """Get session id from SESSIONS"""
     try:
-        browser_cookies = request["header"].get("Cookie", False)
-        sid = request["header"]["Cookie"].get("sid", False)
+        sid = request["header"]["Cookie"].get("sid")
     except KeyError as key:
         print("No {} in request header\n".format(key))
-    if browser_cookies and sid:
-        return sid
-    return None
-
-def del_session(request):
-    """Delete session from self.SESSIONS"""
-    browser_cookies = request["header"].get("Cookie", False)
-    if browser_cookies:
-        sid = request["header"]["Cookie"].get("sid", False)
-    if sid:
+        return None
+    if option == 'delete':
         del SESSIONS[sid]
-
+    return sid
 
 def logger(request, response):
     client_ip = request["header"]["Host"].split(":")[0]

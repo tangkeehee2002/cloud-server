@@ -3,15 +3,15 @@
 
 import os
 import re
-# import base64
 import asyncio
 from http import HTTPStatus
 import json
 import mimetypes
+# import base64
 # import binascii
 from email.utils import (formatdate, CRLF)
 from email.header import SPACE
-# import middlewares
+# import redis
 # import logging
 
 METHODS = ("GET", "POST")
@@ -98,6 +98,9 @@ def route_handler(request, response, next_):
     # print(type(res_body))
     response["content"] = res_body
     return ok_200_handler(request, response)
+
+def session_handler(request, response, next_):
+    pass
 
 
 
