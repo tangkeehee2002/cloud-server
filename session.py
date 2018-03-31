@@ -3,6 +3,7 @@
 
 from uuid import uuid4
 
+
 class Session:
     """Session middleware for web server."""
 
@@ -16,43 +17,37 @@ class Session:
 
     def session_middleware(self, request, response):
         """Add sessions to the self.session."""
-        browser_cookies = request["header"].get("Cookie")
-        if browser_cookies:
+        try:
             sid = request["header"]["Cookie"].get("sid")
-        if sid:
-            return request, response
-        sid = str(uuid4())
-        response["header"]["Set-Cookie"] = "sid={}".format(sid)
-        self.SESSION[sid] = {}
+        except KeyError:
+            sid = str(uuid4())
+            response["header"]["Set-Cookie"] = "sid={}".format(sid)
+            self.SESSION[sid] = {}
         return request, response
+
+    def cookie_sid(self, request):
+        try:
+            sid = request["header"]["Cookie"].get("sid")
+            return sid
+        except KeyError:
+            pass
+        return False
 
     def add(self, request, content):
         """Add content to sid dictionary."""
-        browser_cookies = request["header"].get("Cookie")
-        if browser_cookies:
-            sid = request["header"]["Cookie"].get("sid")
+        sid = self.cookie_sid(request)
         if sid:
             self.SESSION[sid].update(content)
 
     def get(self, request, key):
         """Get session data from self.SESSION."""
-        try:
-            browser_cookies = request["header"].get("Cookie", False)
-            sid = request["header"]["Cookie"].get("sid", False)
-        except KeyError:
-            print("Session ID missing in request header\n")
-            return None
-        if browser_cookies and sid:
-            if key in self.SESSION[sid]:
-                return self.SESSION[sid][key]
-            else:
-                print("{} not provided for the session.".format(key))
+        sid = self.cookie_sid(request)
+        if sid and self.SESSION[sid].get(key, False):
+            return self.SESSION[sid][key]
         return None
 
     def pop(self, request):
         """Delete sid from self.session."""
-        browser_cookies = request["header"].get("Cookie")
-        if browser_cookies:
-            sid = request["header"]["Cookie"].get("sid")
+        sid = self.cookie_sid(request)
         if sid:
             del self.SESSION[sid]
