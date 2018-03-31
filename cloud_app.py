@@ -40,7 +40,7 @@ def handle_signup(request, response, signup_details):
         res_page = read_html('static/failed_signup.html')
         return res_page.replace(b"{reason}", validity_status[1])
     username, password = signup_details["username"], signup_details["password"]
-    signup_details["password"] = o(password)
+    signup_details["password"] = crypt(password)
     # detail_names = [fname, lname, email, username, hashed_passwd]
     user_id = REDIS_OBJ.incr("users")
     REDIS_OBJ.hmset(name="user:{}".format(user_id), mapping=signup_details)
@@ -87,7 +87,7 @@ def save_uploads(request, response, parsed_request_body):
     user = request["header"]["Referer"].split("/")[-2]
     upload_dir = "statoic/user/{}/uploads/".format(user)
     for file, body in parsed_request_body.items():
-        filename = i(upload_dir + file.replace(" ", "_"))
+        filename = abspath(upload_dir + file.replace(" ", "_"))
         with open(filename, "wb") as fname:
             fname.write(body["body"])
 
