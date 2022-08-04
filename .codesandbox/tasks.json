@@ -1,0 +1,13 @@
+{
+  // These tasks will run in order when initializing your CodeSandbox project.
+  "setupTasks": [],
+
+  // These tasks can be run from CodeSandbox. Running one will open a log in the app.
+  "tasks": {
+    "python3 cloud_app.py": {
+      "name": "python3 cloud_app.py",
+      "command": "python3 cloud_app.py",
+      "runAtStart": true
+    }
+  }
+}

@@ -16,7 +16,7 @@ from email.header import SPACE
 
 METHODS = ("GET", "POST")
 ROUTES = {method: {} for method in METHODS}
-ALLOWED_DOMAINS = ("localhost:8000/index.html", )
+ALLOWED_DOMAINS = ("localhost:80/index.html", )
 
 
 def res_header(response, header):
